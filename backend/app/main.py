@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+import os
 
 # Add the project root to path so we can import app modules
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -21,6 +22,7 @@ from app.routers.payroll_v1 import router as payroll_v1
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="TapAttend V1", version="0.1.0")
+
 origins = [item.strip() for item in settings.cors_origins.split(",") if item.strip()]
 app.add_middleware(
     CORSMiddleware,
@@ -36,7 +38,9 @@ app.include_router(points_router)
 app.include_router(users_router)
 app.include_router(payroll_v1)
 
+# Ensure static assets directory exists before mounting
 static_dir = Path(__file__).parent / "static"
+os.makedirs(static_dir / "assets", exist_ok=True)
 app.mount("/assets", StaticFiles(directory=static_dir / "assets"), name="assets")
 
 
