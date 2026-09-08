@@ -1,5 +1,9 @@
 const TOKEN_KEY = "tapattend_token";
 
+// Production backend URL - change this when deploying to production
+// const BASE_URL = "https://tapattend-v1-production.up.railway.app";
+const BASE_URL = "http://127.0.0.1:8001";
+
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
@@ -10,11 +14,12 @@ export function setToken(token: string | null) {
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const url = `${BASE_URL}${path}`;
   const headers = new Headers(options.headers);
   headers.set("Content-Type", "application/json");
   const token = getToken();
   if (token) headers.set("Authorization", `Bearer ${token}`);
-  const res = await fetch(path, { ...options, headers });
+  const res = await fetch(url, { ...options, headers });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const detail = (data as { detail?: string }).detail || "Request failed";
@@ -23,6 +28,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return data as T;
 }
 
+// ... (types remain the same)
 export type Me = {
   id: string;
   full_name: string;

@@ -6,9 +6,9 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8001',
+        target: 'https://tapattend-v1-production.up.railway.app',
         changeOrigin: true,
-        secure: false,
+        secure: true,
       },
     },
   },

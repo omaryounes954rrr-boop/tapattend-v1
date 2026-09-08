@@ -13,6 +13,20 @@ type Me = {
   device_fingerprint: string | null;
 };
 
+const COLORS = {
+  bg: "rgba(255, 255, 255, 0.95)",
+  card: "rgba(255, 255, 255, 0.8)",
+  cardDark: "rgba(25, 25, 25, 0.8)",
+  nav: "rgba(255, 255, 255, 0.9)",
+  text: "#1a1a1a",
+  textSecondary: "#6b6b6b",
+  accent: "#3b82f6",
+  border: "rgba(255, 255, 255, 0.3)",
+};
+
+const SHADOW = "0 4px 20px rgba(0, 0, 0, 0.08)";
+const TRANSITION = "all 0.2s ease";
+
 export default function App() {
   const [me, setMe] = useState<Me | null>(null);
   const [page, setPage] = useState<Page>("dashboard");
@@ -32,28 +46,28 @@ export default function App() {
 
   if (!ready) return <div className="auth-wrap">جاري التحميل...</div>;
   if (!me) return <Auth onAuthed={setMe} />;
-  
+
   const admin = me.role !== "employee";
   return (
-    <div className="shell">
-      <aside className="nav">
-        <strong>TapAttend V1</strong>
-        <div className="muted">{me.org_name}</div>
-        {admin && (
-          <>
-            <button className={page === "dashboard" ? "active" : ""} onClick={() => setPage("dashboard")}>لوحة التحكم</button>
-            <button className={page === "users" ? "active" : ""} onClick={() => setPage("users")}>الموظفون</button>
-            <button className={page === "payroll" ? "active" : ""} onClick={() => setPage("payroll")}>مرتبات</button>
-          </>
-        )}
-        <button className={page === "logs" ? "active" : ""} onClick={() => setPage("logs")}>السجلات</button>
-        <button onClick={() => { localStorage.removeItem("tapattend_token"); setMe(null); }}>خروج</button>
-      </aside>
-      <main className="main">
+    <div className="app-container">
+      <nav className="app-nav">
+        <div className="nav-header">
+          <strong>TapAttend V1</strong>
+          <div className="nav-org">{me.org_name}</div>
+        </div>
+        <div className="nav-tabs">
+          <button className={page === "dashboard" ? "tab-active" : "tab-inactive"} onClick={() => setPage("dashboard")>لوحة التحكم</button>
+          <button className={page === "users" ? "tab-active" : "tab-inactive"} onClick={() => setPage("users")}>الموظفون</button>
+          <button className={page === "payroll" ? "tab-active" : "tab-inactive"} onClick={() => setPage("payroll")}>مرتبات</button>
+          <button className={page === "logs" ? "tab-active" : "tab-inactive"} onClick={() => setPage("logs")}>السجلات</button>
+        </div>
+        <button className="btn-logout" onClick={() => { localStorage.removeItem("tapattend_token"); setMe(null); }}>خروج</button>
+      </nav>
+      <main className="app-main">
         {page === "dashboard" && admin && <DashboardMe />}
-        {page === "users" && admin && <Users />}
-        {page === "payroll" && admin && <PayrollDashboard />}
-        {page === "logs" && <Logs admin={admin} />}
+        {page === "users" && admin && <UsersTable />}
+        {page === "payroll" && admin && <PayrollCalculator />}
+        {page === "logs" && <AttendanceLogs />}
       </main>
     </div>
   );
@@ -85,8 +99,8 @@ function Auth({ onAuthed }: { onAuthed: (me: Me) => void }) {
   }
 
   return (
-    <div className="auth-wrap">
-      <form className="auth-card" onSubmit={submit}>
+    <div className="auth-wrapper">
+      <div className="auth-card">
         <h1>TapAttend V1</h1>
         <p className="muted">حضور بالـ NFC و QR</p>
         {mode === "register" && (
@@ -101,12 +115,14 @@ function Auth({ onAuthed }: { onAuthed: (me: Me) => void }) {
         <input name="email" type="email" required />
         <label>كلمة المرور</label>
         <input name="password" type="password" minLength={8} required />
-        <button className="btn" type="submit">{mode === "login" ? "دخول" : "إنشاء الحساب"}</button>
+        <button className="auth-btn" type="submit">
+          {mode === "login" ? "دخول" : "إنشاء الحساب"}
+        </button>
         <p className="err">{error}</p>
-        <button type="button" className="linkish" onClick={() => setMode(mode === "login" ? "register" : "login")}>
+        <button type="button" className="auth-link" onClick={() => setMode(mode === "login" ? "register" : "login")}>
           {mode === "login" ? "إنشاء منظمة جديدة" : "لديك حساب؟ تسجيل الدخول"}
         </button>
-      </form>
+      </div>
     </div>
   );
 }
@@ -118,111 +134,134 @@ function DashboardMe() {
     api.summary().then(setSummary);
     api.mine().then(setLogs);
   }, []);
-  
+
   return (
-    <div>
-      <h1>اليوم</h1>
-      <div className="cards">
-        <div className="card"><div className="muted">مسح اليوم</div><div className="kpi">{summary.scans_today}</div></div>
-        <div className="card"><div className="muted">حاضرون</div><div className="kpi">{summary.present_employees}</div></div>
-        <div className="card"><div className="muted">موظفون</div><div className="kpi">{summary.total_employees}</div></div>
+    <section className="dashboard-section">
+      <h1 className="section-title">لوحة التحكم</h1>
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-number">{summary.scans_today}</div>
+          <div className="stat-label">مسح اليوم</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-number">{summary.present_employees}</div>
+          <div className="stat-label">حاضرون</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-number">{summary.total_employees}</div>
+          <div className="stat-label">موظفون</div>
+        </div>
       </div>
-      <div style={{ marginTop: '20px', padding: '15px', background: '#0e1c28', borderRadius: '10px' }}>
-        <h3>سجلي pessoal</h3>
-        {logs.map((row: any) => (
-          <div key={row.id} style={{ padding: '8px 0', borderBottom: '1px solid #234056' }}>
-            <span>{row.event_type === 'in' ? 'حضور' : 'انصراف'} · 
-            {row.scan_method.toUpperCase()} · 
-            {new Date(row.recorded_at).toLocaleString("ar-EG")}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
+    </section>
   );
 }
 
-function Users({ role }: { role: string }) {
+function UsersTable() {
   const [rows, setRows] = useState([]); // UserRow[]
   const load = () => api.users().then(setRows);
   useEffect(() => { load(); }, []);
 
   return (
-    <div>
-      <h1>الموظفون</h1>
-      <table>
-        <thead><tr><th>الاسم</th><th>البريد</th><th>الدور</th></tr></thead>
-        <tbody>
-          {rows.map((u: any) => (
-            <tr key={u.id}><td>{u.full_name}</td><td>{u.email}</td><td>{u.role}</td></tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function PayrollDashboard() {
-  const [payrolls, setPayrolls] = useState([]);
-  const load = () => {
-    // Fetch all payrolls for this org - we'll simplify and just show a button to calculate one
-    // In V1 we'll calculate on-demand per employee
-    setPayrolls([]);
-  };
-  useEffect(() => { load(); }, []);
-  
-  return (
-    <div style={{ padding: '20px' }}>
-      <h1>مرتبات الموظفين</h1>
-      <p className="muted">ادخل معرف الموظف لرؤية حساب المرتب:</p>
-      <input type="text" id="userIdInput" placeholder="معرف الموظف" style={{ width: '100%', padding: '10px', marginBottom: '10px' }} />
-      <button onclick="calculateIndividualPayroll()" style={{ padding: '10px 20px', background: '#14b8a6', color: '#042f2e', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
-        حساب مرتب الموظف
-      </button>
-      <div id="payrollResult" style={{ marginTop: '20px', padding: '15px', background: '#132433', borderRadius: '10px', display: 'none' }}>
-        <h3>النتيجة:</h3>
-        <pre id="payrollJson" style={{ color: '#e8f2f6', fontSize: '14px' }}></pre>
+    <section className="dashboard-section">
+      <h1 className="section-title">قائمة الموظفين</h1>
+      <div className="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>الاسم</th>
+              <th>البريد</th>
+              <th>الدور</th>
+              <th>الحالة</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((u: any) => (
+              <tr key={u.id} className="table-row">
+                <td className="cell-name">{u.full_name}</td>
+                <td className="cell-email">{u.email}</td>
+                <td className="cell-role">{u.role}</td>
+                <td className="cell-status">
+                  {u.role === "employee" ? "موظف" : "HR/إدارة"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-    </div>
+    </section>
   );
 }
 
-function calculateIndividualPayroll() {
-  const userId = document.getElementById('userIdInput').value;
-  if (!userId) {
-    alert('يرجى إدخال معرف الموظف');
-    return;
-  }
-  api.payroll(userId).then((data) => {
-    document.getElementById('payrollJson').innerText = JSON.stringify(data, null, 2);
-    document.getElementById('payrollResult').style.display = 'block';
-  }).catch((err) => {
-    alert('حدث خطأ: ' + err.message);
-  });
+function PayrollCalculator() {
+  const [payrollData, setPayrollData] = useState(null);
+  const [userId, setUserId] = useState("");
+  const load = () => {};
+
+  return (
+    <section className="dashboard-section">
+      <h1 className="section-title">حاسبة المرتبات</h1>
+      <div className="payroll-card">
+        <input
+          type="text"
+          placeholder="معرف الموظف"
+          value={userId}
+          onChange={(e) => setUserId(e.target.value)}
+          className="payroll-input"
+        />
+        <button className="payroll-btn" onClick={() => {
+          if (!userId) {
+            alert("يرجى إدخال معرف الموظف");
+            return;
+          }
+          api.payroll(userId).then((data) => {
+            setPayrollData(data);
+          });
+        }}>
+          حساب مرتب الموظف
+        </button>
+      </div>
+      {payrollData && (
+        <div className="payroll-result">
+          <h3>النتيجة:</h3>
+          <pre className="payroll-json">{JSON.stringify(payrollData, null, 2)}</pre>
+        </div>
+      )}
+    </section>
+  );
 }
 
-function Logs({ admin }: { admin: boolean }) {
+function AttendanceLogs({ admin }: { admin: boolean }) {
   const [rows, setRows] = useState([]); // LogRow[]
   useEffect(() => {
     const source = admin ? api.logs() : api.mine();
     source.then(setRows);
   }, [admin]);
+
   return (
-    <div style={{ padding: '20px' }}>
-      <h1>السجلات</h1>
-      <table>
-        <thead><tr><th>الوقت</th><th>الموظف</th><th>النوع</th><th>الطريقة</th></tr></thead>
-        <tbody>
-          {rows.map((r: any) => (
-            <tr key={r.id}>
-              <td>{new Date(r.recorded_at).toLocaleString("ar-EG")}</td>
-              <td>{r.user_name || "—"}</td>
-              <td>{r.event_type === "in" ? "حضور" : "انصراف"}</td>
-              <td>{r.scan_method.toUpperCase()}</td>
+    <section className="dashboard-section">
+      <h1 className="section-title">سجلات الحضور</h1>
+      <div className="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>الوقت</th>
+              <th>الموظف</th>
+              <th>النوع</th>
+              <th>الطريقة</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {rows.map((r: any) => (
+              <tr key={r.id} className="table-row">
+                <td className="cell-time">{new Date(r.recorded_at).toLocaleString("ar-EG")}</td>
+                <td className="cell-name">{r.user_name || "—"}</td>
+                <td className="cell-event">{r.event_type === "in" ? "حضور" : "انصراف"}</td>
+                <td className="cell-method">{r.scan_method.toUpperCase()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
