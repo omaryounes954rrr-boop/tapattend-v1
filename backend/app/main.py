@@ -12,10 +12,10 @@ from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from app.database import Base, engine
 from app.models import AttendanceLog, CheckinPoint, Organization, User  # noqa: F401
-from app.routers.attendance import attendance
-from app.routers.auth import auth
-from app.routers.points import points
-from app.routers.users import users
+from app.routers.attendance import router as attendance_router
+from app.routers.auth import router as auth_router
+from app.routers.points import router as points_router
+from app.routers.users import router as users_router
 from app.payroll import router as payroll_legacy_router
 
 Base.metadata.create_all(bind=engine)
@@ -30,10 +30,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth.router)
-app.include_router(users.router)
-app.include_router(points.router)
-app.include_router(attendance.router)
+app.include_router(attendance_router)
+app.include_router(auth_router)
+app.include_router(points_router)
+app.include_router(users_router)
 app.include_router(payroll_v1)
 app.include_router(payroll_legacy_router)
 
