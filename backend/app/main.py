@@ -12,7 +12,10 @@ from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from app.database import Base, engine
 from app.models import AttendanceLog, CheckinPoint, Organization, User  # noqa: F401
-from app.routers import attendance, auth, points, users, payroll_v1
+from app.routers.attendance import attendance
+from app.routers.auth import auth
+from app.routers.points import points
+from app.routers.users import users
 from app.payroll import router as payroll_legacy_router
 
 Base.metadata.create_all(bind=engine)
