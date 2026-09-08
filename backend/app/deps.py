@@ -13,6 +13,9 @@ def get_current_user(db: Session = Depends(get_db)) -> User:
     raise HTTPException(status_code=401, detail="Authentication required")
 
 
+current_user = get_current_user
+
+
 def require_roles(*allowed_roles):
     """Dependency that checks if the user has required roles.
     In practice, this would be used with FastAPI's `Depends()`.
