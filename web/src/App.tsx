@@ -56,7 +56,7 @@ export default function App() {
           <div className="nav-org">{me.org_name}</div>
         </div>
         <div className="nav-tabs">
-          <button className={page === "dashboard" ? "tab-active" : "tab-inactive"} onClick={() => setPage("dashboard")>لوحة التحكم</button>
+          <button className={page === "dashboard" ? "tab-active" : "tab-inactive"} onClick={() => setPage("dashboard")}>لوحة التحكم</button>
           <button className={page === "users" ? "tab-active" : "tab-inactive"} onClick={() => setPage("users")}>الموظفون</button>
           <button className={page === "payroll" ? "tab-active" : "tab-inactive"} onClick={() => setPage("payroll")}>مرتبات</button>
           <button className={page === "logs" ? "tab-active" : "tab-inactive"} onClick={() => setPage("logs")}>السجلات</button>
