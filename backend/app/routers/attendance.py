@@ -3,12 +3,12 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 
-from ..config import settings
-from ..database import get_db
-from ..deps import current_user, require_roles
-from ..geo import within_radius
-from ..models import AttendanceLog, CheckinPoint, User
-from ..schemas import AttendanceOut, DemoScanIn, ScanIn, ScanOut
+from app.config import settings
+from app.database import get_db
+from app.deps import current_user, require_roles
+from app.geo import within_radius
+from app.models import AttendanceLog, CheckinPoint, User
+from app.schemas import AttendanceOut, DemoScanIn, ScanIn, ScanOut
 
 router = APIRouter(prefix="/api/attendance", tags=["attendance"])
 
