@@ -16,7 +16,7 @@ from app.routers.attendance import router as attendance_router
 from app.routers.auth import router as auth_router
 from app.routers.points import router as points_router
 from app.routers.users import router as users_router
-from app.payroll import router as payroll_legacy_router
+from app.routers.payroll_v1 import router as payroll_v1
 
 Base.metadata.create_all(bind=engine)
 
@@ -35,7 +35,6 @@ app.include_router(auth_router)
 app.include_router(points_router)
 app.include_router(users_router)
 app.include_router(payroll_v1)
-app.include_router(payroll_legacy_router)
 
 static_dir = Path(__file__).parent / "static"
 app.mount("/assets", StaticFiles(directory=static_dir / "assets"), name="assets")
