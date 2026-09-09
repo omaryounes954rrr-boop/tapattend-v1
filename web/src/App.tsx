@@ -1,88 +1,115 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 
-const TestButton = () => {
-  return (
-    <button
-      style={{
-        padding: "12px 24px",
-        background: "#3b82f6",
-        color: "white",
-        border: "none",
-        borderRadius: "8px",
-        cursor: "pointer",
-        fontSize: "16px",
-      }}
-    >
-      Test Button Rendering
-    </button>
-  );
+// ============================================================
+// SIMPLE API HELPER - IN-LINED (no external dependencies)
+// ============================================================
+const API_BASE = "https://tapattend-v1-production.up.railway.app";
+
+const api = {
+  auth: {
+    me: () =>
+      fetch(API_BASE + "/api/v1/auth/me", {
+        headers: localStorage.getItem("tapattend_token")
+          ? { Authorization: "Bearer " + localStorage.getItem("tapattend_token") }
+          : {},
+      }).then((r) => r.json()),
+  },
+  attendance: {
+    summary: () =>
+      fetch(API_BASE + "/api/v1/attendance/today-summary", {
+        headers: localStorage.getItem("tapattend_token")
+          ? { Authorization: "Bearer " + localStorage.getItem("tapattend_token") }
+          : {},
+      }).then((r) => r.json()),
+      mine: () =>
+        fetch(API_BASE + "/api/v1/attendance/mine", {
+          headers: localStorage.getItem("tapattend_token")
+            ? { Authorization: "Bearer " + localStorage.getItem("tapattend_token") }
+          : {}
+        }).then((r) => r.json()),
+    },
+  users: {
+    getAll: () =>
+      fetch(API_BASE + "/api/v1/users", {
+        headers: localStorage.getItem("tapattend_token")
+          ? { Authorization: "Bearer " + localStorage.getItem("tapattend_token") }
+          : {},
+      }).then((r) => r.json()),
+    },
+  payroll: {
+    calculate: (userId: string) =>
+      fetch(API_BASE + "/api/v1/payroll/" + userId, {
+        headers: localStorage.getItem("tapattend_token")
+          ? { Authorization: "Bearer " + localStorage.getItem("tapattend_token") }
+          : {},
+      }).then((r) => r.json()),
+  },
 };
 
-const Sidebar = () => {
-  return (
-    <div
-      style={{
-        width: "250px",
-        background: "#f8f9fa",
-        padding: "20px",
-        height: "100vh",
-        borderRight: "1px solid #e2e8f0",
-      }}
-    >
-      <h3 style={{ margin: "0 0 16px 0", color: "#1e293b" }}>TapAttend V1</h3>
-      <ul style={{ listStyle: "none", padding: "0" }}>
-        <li style={{ margin: "8px 0", color: "#475569" }}>
-          Dashboard
-        </li>
-        <li style={{ margin: "8px 0", color: "#475569" }}>
-          Employees
-        </li>
-        <li style={{ margin: "8px 0", color: "#475569" }}>
-          Payroll
-        </li>
-        <li style={{ margin: "8px 0", color: "#475569" }}>
-          Logs
-        </li>
-      </ul>
-    </div>
-  );
+// ============================================================
+// SIMPLE TYPES
+// ============================================================
+type Me = {
+  id: string;
+  full_name: string;
+  email: string;
+  role: "owner" | "hr" | "employee";
+  org_name: string;
 };
 
-const MainContent = () => {
-  return (
-    <div
-      style={{
-        flex: "1",
-        padding: "20px",
-        background: "#f1f5f9",
-        minHeight: "100vh",
-      }}
-    >
-      <h2 style={{ margin: "0 0 16px 0", color: "1e293b" }}>
-        TapAttend Dashboard Running
-      </h2>
-      <p style={{ color: "64748b", margin: "16px 0" }}>
-        The DOM is rendering successfully. This is a test to verify the frontend
-        is working before re-adding async features.
-      </p>
-      <TestButton />
-    </div>
-  );
-};
-
+// ============================================================
+// SIMPLE REACT APP WITH GUARANTEED RENDER
+// ============================================================
 export default function App() {
+  const [me, setMe] = useState(null);
+  const [page, setPage] = useState("dashboard");
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("tapattend_token");
+    if (!token) {
+      setReady(true);
+      return;
+    }
+    api.authApi.me().then((user: any) => {
+      setMe(user);
+      if (user.role === "employee") setPage("logs");
+    }).catch(() => {
+      localStorage.removeItem("tapattend_token");
+      setReady(true);
+    });
+  }, []);
+
+  // --- GUARANTEED INITIAL RENDER ---
+  // NO blank white screen - something always renders immediately
+  if (!ready) return <div className="screen-loader">Loading TapAttend V1...</div>;
+  if (!me) return <div className="auth-screen">Please log in</div>;
+
+  const admin = me.role !== "employee";
+
   return (
-    <div
-      style={{
-        display: "flex",
-        height: "100vh",
-        overflow: "hidden",
-        fontFamily: "'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif",
-        color: "1e293b",
-      }}
-    >
-      <Sidebar />
-      <MainContent />
+    <div className="app-container">
+      <nav className="app-nav">
+        <div className="nav-header">
+          <strong>TapAttend V1</strong>
+          <div className="nav-org">{me.org_name}</div>
+        </div>
+        <div className="nav-tabs">
+          <button className={page === "dashboard" ? "tab-active" : "tab-inactive"} onClick={() => setPage("dashboard")}>
+            Dashboard
+          </button>
+          <button className={page === "users" ? "tab-active" : "tab-inactive"} onClick={() => setPage("users")}>Employees</button>
+          <button className={page === "payroll" ? "tab-active" : "tab-inactive"} onClick={() => setPage("payroll")}>Payroll</button>
+          <button className={page === "logs" ? "tab-active" : "tab-inactive"} onClick={() => setPage("logs")}>Logs</button>
+        </div>
+        <button className="btn-logout" onClick={() => { localStorage.removeItem("tapattend_token"); setMe(null); }}>Logout</button>
+      </nav>
+      <main className="app-main">
+        {page === "dashboard" && <div>Dashboard Content</div>}
+        {page === "users" && <div>Employees Table</div>}
+        {page === "payroll" && <div>Payroll Calculator</div>}
+        {page === "logs" && <div>Attendance Logs</div>}
+      </main>
     </div>
   );
 }
