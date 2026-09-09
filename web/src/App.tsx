@@ -30,15 +30,15 @@ export default function App() {
     }).catch(() => localStorage.removeItem("tapattend_token")).finally(() => setReady(true));
   }, []);
 
-  // Always ensure something renders
+  // Always ensure content renders - no empty render tree
   if (!ready) return <div className="screen-loader">جاري التحميل...</div>;
   
-  // If no user data yet, show auth
-  if (!me) return <div className="auth-screen">يرجى تسجيل الدخول</div>;
+  // If no user data yet, show auth screen
+  if (!me) return <div className="auth-wrapper">يرجى تسجيل الدخول</div>;
 
   const admin = me.role !== "employee";
   
-  // Ensure we always have a page state
+  // Ensure page state is valid
   if (page === undefined || page === null) setPage("dashboard");
 
   return (
@@ -54,14 +54,205 @@ export default function App() {
           <button className={page === "payroll" ? "tab-active" : "tab-inactive"} onClick={() => setPage("payroll")}>مرتبات</button>
           <button className={page === "logs" ? "tab-active" : "tab-inactive"} onClick={() => setPage("logs")}>السجلات</button>
         </div>
-        <button className="btn-logout" onClick={() => { localStorage.removeItem("tapattend_token"); setMe(null); }>خروج</button>
+        <button className="btn-logout" onClick={() => { localStorage.removeItem("tapattend_token"); setMe(null); }}>خروج</button>
       </nav>
       <main className="app-main">
-        {page === "dashboard" && admin && <div>لوحة التحكم</div>}
-        {page === "users" && admin && <div>قائمة الموظفين</div>}
-        {page === "payroll" && admin && <div>حاسبة المرتبات</div>}
-        {page === "logs" && <div>سجلات الحضور</div>}
+        {page === "dashboard" && admin && <DashboardMe />}
+        {page === "users" && admin && <UsersTable />}
+        {page === "payroll" && admin && <PayrollCalculator />}
+        {page === "logs" && <AttendanceLogs />}
       </main>
     </div>
+  );
+}
+
+function Auth({ onAuthed }: { onAuthed: (me: Me) => void }) {
+  const [mode, setMode] = useState<"login" | "register">("login");
+  const [error, setError] = useState("");
+
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError("");
+    const fd = new FormData(e.currentTarget);
+    try {
+      const token =
+        mode === "login"
+          ? await api.login(String(fd.get("email")), String(fd.get("password")))
+          : await api.registerOrg({
+              org_name: String(fd.get("org_name")),
+              full_name: String(fd.get("full_name")),
+              email: String(fd.get("email")),
+              password: String(fd.get("password")),
+            });
+      localStorage.setItem("tapattend_token", token.access_token);
+      onAuthed(await api.me());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "فشل");
+    }
+  }
+
+  return (
+    <div className="auth-wrapper">
+      <div className="auth-card">
+        <h1>TapAttend V1</h1>
+        <p className="muted">حضور بالـ NFC و QR</p>
+        {mode === "register" && (
+          <>
+            <label>اسم organisation</label>
+            <input name="org_name" required />
+            <label>الاسم الكامل</label>
+            <input name="full_name" required />
+          </>
+        )}
+        <label>البريد</label>
+        <input name="email" type="email" required />
+        <label>كلمة المرور</label>
+        <input name="password" type="password" minLength={8} required />
+        <button className="auth-btn" type="submit">{mode === "login" ? "دخول" : "إنشاء الحساب"}</button>
+        <p className="err">{error}</p>
+        <button type="button" className="auth-link" onClick={() => setMode(mode === "login" ? "register" : "login")}>
+          {mode === "login" ? "إنشاء Organisation جديدة" : "لديك حساب؟ تسجيل الدخول"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function DashboardMe() {
+  const [summary, setSummary] = useState({ scans_today: 0, present_employees: 0, total_employees: 0 });
+  const [logs, setLogs] = useState([]); // Will hold LogRow[] type
+  useEffect(() => {
+    api.summary().then(setSummary);
+    api.mine().then(setLogs);
+  }, []);
+
+  return (
+    <section className="dashboard-section">
+      <h1 className="section-title">لوحة التحكم</h1>
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-number">{summary.scans_today}</div>
+          <div className="stat-label">مسح اليوم</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-number">{summary.present_employees}</div>
+          <div className="stat-label">حاضرون</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-number">{summary.total_employees}</div>
+          <div className="stat-label">موظفون</div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function UsersTable() {
+  const [rows, setRows] = useState([]); // UserRow[]
+  const load = () => api.users().then(setRows);
+  useEffect(() => { load(); }, []);
+
+  return (
+    <section className="dashboard-section">
+      <h1 className="section-title">قائمة الموظفين</h1>
+      <div className="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>الاسم</th>
+              <th>البريد</th>
+              <th>الدور</th>
+              <th>الحالة</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((u: any) => (
+              <tr key={u.id} className="table-row">
+                <td className="cell-name">{u.full_name}</td>
+                <td className="cell-email">{u.email}</td>
+                <td className="cell-role">{u.role}</td>
+                <td className="cell-status">
+                  {u.role === "employee" ? "موظف" : "HR/إدارة"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+function PayrollCalculator() {
+  const [payrollData, setPayrollData] = useState(null);
+  const [userId, setUserId] = useState("");
+  const load = () => {};
+
+  return (
+    <section className="dashboard-section">
+      <h1 className="section-title">حاسبة المرتبات</h1>
+      <div className="payroll-card">
+        <input
+          type="text"
+          placeholder="معرف الموظف"
+          value={userId}
+          onChange={(e) => setUserId(e.target.value)}
+          className="payroll-input"
+        />
+        <button className="payroll-btn" onClick={() => {
+          if (!userId) {
+            alert("يرجى إدخال معرف الموظف");
+            return;
+          }
+          api.payroll(userId).then((data) => {
+            setPayrollData(data);
+          });
+        }}>
+          حساب مرتب الموظف
+        </button>
+      </div>
+      {payrollData && (
+        <div className="payroll-result">
+          <h3>النتيجة:</h3>
+          <pre className="payroll-json">{JSON.stringify(payrollData, null, 2)}</pre>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function AttendanceLogs({ admin }: { admin: boolean }) {
+  const [rows, setRows] = useState([]); // LogRow[]
+  useEffect(() => {
+    const source = admin ? api.logs() : api.mine();
+    source.then(setRows);
+  }, [admin]);
+
+  return (
+    <section className="dashboard-section">
+      <h1 className="section-title">سجلات الحضور</h1>
+      <div className="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>الوقت</th>
+              <th>الموظف</th>
+              <th>النوع</th>
+              <th>الطريقة</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r: any) => (
+              <tr key={r.id} className="table-row">
+                <td className="cell-time">{new Date(r.recorded_at).toLocaleString("ar-EG")}</td>
+                <td className="cell-name">{r.user_name || "—"}</td>
+                <td className="cell-event">{r.event_type === "in" ? "حضور" : "انصراف"}</td>
+                <td className="cell-method">{r.scan_method.toUpperCase()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
