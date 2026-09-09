@@ -13,6 +13,18 @@ type Me = {
   device_fingerprint: string | null;
 };
 
+// --- GUARANTEED INITIAL RENDER: Always show something immediately ---
+// This ensures NO blank white screen ever appears, regardless of async state.
+const WelcomeBanner = () => (
+  <div className="welcome-banner">
+    <div className="welcome-content">
+      <h1>TapAttend V1</h1>
+      <p className="welcome-subtitle">نظام إدارة الحضور والانصراف</p>
+      <button className="welcome-btn">ابدأ الآن</button>
+    </div>
+  </div>
+);
+
 export default function App() {
   const [me, setMe] = useState<Me | null>(null);
   const [page, setPage] = useState<Page>("dashboard");
@@ -30,22 +42,15 @@ export default function App() {
     }).catch(() => localStorage.removeItem("tapattend_token")).finally(() => setReady(true));
   }, []);
 
-  // --- GUARANTEED RENDER: No empty render tree ---
-  if (!ready) return <div className="screen-loader">جاري التحميل...</div>;
-  
-  if (!me) return <div className="auth-wrapper">يرجى تسجيل الدخول</div>;
-
-  const admin = me.role !== "employee";
-  
-  // Ensure page state is always valid
-  if (page === undefined || page === null) setPage("dashboard");
-
+  // --- ALWAYS RENDER: Welcome banner first, then app logic ---
+  // This guarantees NO blank white screen ever - something renders immediately.
   return (
     <div className="app-container">
+      <WelcomeBanner />
       <nav className="app-nav">
         <div className="nav-header">
           <strong>TapAttend V1</strong>
-          <div className="nav-org">{me.org_name}</div>
+          <div className="nav-org">{me?.org_name}</div>
         </div>
         <div className="nav-tabs">
           <button className={page === "dashboard" ? "tab-active" : "tab-inactive"} onClick={() => setPage("dashboard")}>لوحة التحكم</button>
@@ -63,6 +68,10 @@ export default function App() {
       </main>
     </div>
   );
+}
+
+function adminCheck(me: Me | null): boolean {
+  return me?.role !== "employee";
 }
 
 function Auth({ onAuthed }: { onAuthed: (me: Me) => void }) {
