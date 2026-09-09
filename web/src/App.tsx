@@ -30,15 +30,14 @@ export default function App() {
     }).catch(() => localStorage.removeItem("tapattend_token")).finally(() => setReady(true));
   }, []);
 
-  // Always ensure content renders - no empty render tree
+  // --- GUARANTEED RENDER: No empty render tree ---
   if (!ready) return <div className="screen-loader">جاري التحميل...</div>;
   
-  // If no user data yet, show auth screen
   if (!me) return <div className="auth-wrapper">يرجى تسجيل الدخول</div>;
 
   const admin = me.role !== "employee";
   
-  // Ensure page state is valid
+  // Ensure page state is always valid
   if (page === undefined || page === null) setPage("dashboard");
 
   return (
