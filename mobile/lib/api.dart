@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class TapAttendApi {
-  TapAttendApi({this.baseUrl = 'http://127.0.0.1:8001'});
+  TapAttendApi({this.baseUrl = 'https://tapattend-v1-production.up.railway.app'});
 
   final String baseUrl;
   static const _tokenKey = 'tapattend_token';
